@@ -1,0 +1,104 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f2f5f8;
+    color: #222;
+}
+
+.page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.box {
+    width: 100%;
+    max-width: 400px;
+    background: white;
+    padding: 28px;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+h1 {
+    margin: 0 0 20px;
+    text-align: center;
+    font-size: 28px;
+}
+
+label {
+    display: block;
+    margin-top: 14px;
+    font-weight: bold;
+}
+
+input {
+    width: 100%;
+    padding: 11px;
+    margin-top: 6px;
+    border: 1px solid #cfd6dd;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 20px;
+    border: 0;
+    border-radius: 5px;
+    background: #2563eb;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #1d4ed8;
+}
+
+.links {
+    margin-top: 18px;
+    text-align: center;
+    line-height: 1.7;
+}
+
+a {
+    color: #2563eb;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.message {
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    background: #e8f5e9;
+    color: #1b5e20;
+}
+
+.error {
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    background: #ffebee;
+    color: #b71c1c;
+}
+
+.home-card {
+    text-align: center;
+}
+
+.user-email {
+    margin: -8px 0 12px;
+    color: #667085;
+}
