@@ -1,40 +1,49 @@
 <?php
 include "../config/database.php";
+include "../config/mail_helper.php";
 
 $message = "";
 $error = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = trim($_POST["email"]);
-    $newPassword = trim($_POST["new_password"]);
-    $confirmPassword = trim($_POST["confirm_password"]);
 
-    if ($email == "" || $newPassword == "" || $confirmPassword == "") {
-        $error = "Please fill all fields.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = "Please enter a valid email address.";
-    } elseif ($newPassword != $confirmPassword) {
-        $error = "Password and confirm password do not match.";
-    } elseif (strlen($newPassword) < 6) {
-        $error = "Password must be at least 6 characters.";
+    if ($email == "") {
+        $error = "Please enter your Gmail address.";
+    } elseif (!isGmailAddress($email)) {
+        $error = "Please enter a valid Gmail address.";
     } else {
-        $checkSql = "SELECT id FROM users WHERE email = ?";
-        $checkStmt = mysqli_prepare($conn, $checkSql);
-        mysqli_stmt_bind_param($checkStmt, "s", $email);
-        mysqli_stmt_execute($checkStmt);
-        mysqli_stmt_store_result($checkStmt);
+        $sql = "SELECT id, name FROM users WHERE email = ? AND email_verified = 1";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "s", $email);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
 
-        if (mysqli_stmt_num_rows($checkStmt) == 1) {
-            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+        if (mysqli_num_rows($result) == 1) {
+            $user = mysqli_fetch_assoc($result);
+            $resetToken = makeSecureToken();
+            $resetExpires = date("Y-m-d H:i:s", strtotime("+30 minutes"));
 
-            $updateSql = "UPDATE users SET password = ? WHERE email = ?";
+            $updateSql = "UPDATE users SET password_reset_token = ?, password_reset_expires = ? WHERE id = ?";
             $updateStmt = mysqli_prepare($conn, $updateSql);
-            mysqli_stmt_bind_param($updateStmt, "ss", $hashedPassword, $email);
+            mysqli_stmt_bind_param($updateStmt, "ssi", $resetToken, $resetExpires, $user["id"]);
             mysqli_stmt_execute($updateStmt);
 
-            $message = "Password changed successfully. You can login now.";
-        } else {
-            $error = "Email not found.";
+            $resetLink = getBaseUrl() . "/reset-password.php?token=" . $resetToken;
+            $emailBody = "Hi " . htmlspecialchars($user["name"]) . ",<br><br>"
+                . "Click this link to reset your password:<br>"
+                . "<a href='" . $resetLink . "'>" . $resetLink . "</a><br><br>"
+                . "This link will expire in 30 minutes.";
+
+            $mailResult = sendSmtpEmail($email, $user["name"], "Reset your password", $emailBody);
+
+            if ($mailResult !== true) {
+                $error = $mailResult;
+            }
+        }
+
+        if ($error == "") {
+            $message = "If this verified Gmail exists, a password reset link has been sent.";
         }
     }
 }
@@ -52,24 +61,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <h1>Forgot Password</h1>
 
             <?php if ($message != "") { ?>
-                <div class="message"><?php echo $message; ?></div>
+                <div class="message"><?php echo htmlspecialchars($message); ?></div>
             <?php } ?>
 
             <?php if ($error != "") { ?>
-                <div class="error"><?php echo $error; ?></div>
+                <div class="error"><?php echo htmlspecialchars($error); ?></div>
             <?php } ?>
 
             <form method="POST" action="">
-                <label>Email</label>
-                <input type="email" name="email" placeholder="Enter your registered email">
+                <label>Gmail Address</label>
+                <input type="email" name="email" placeholder="Enter your registered Gmail">
 
-                <label>New Password</label>
-                <input type="password" name="new_password" placeholder="Enter new password">
-
-                <label>Confirm Password</label>
-                <input type="password" name="confirm_password" placeholder="Enter password again">
-
-                <button type="submit">Reset Password</button>
+                <button type="submit">Send Reset Link</button>
             </form>
 
             <div class="links">

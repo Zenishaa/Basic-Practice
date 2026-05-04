@@ -1,5 +1,6 @@
 <?php
 include "../config/database.php";
+include "../config/mail_helper.php";
 
 $message = "";
 $error = "";
@@ -13,8 +14,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($name == "" || $email == "" || $phone == "" || $password == "" || $confirmPassword == "") {
         $error = "Please fill all fields.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = "Please enter a valid email address.";
+    } elseif (!isGmailAddress($email)) {
+        $error = "Please enter a valid Gmail address.";
     } elseif ($password != $confirmPassword) {
         $error = "Password and confirm password do not match.";
     } elseif (strlen($password) < 6) {
@@ -30,13 +31,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $error = "This email is already registered.";
         } else {
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $verificationToken = makeSecureToken();
+            $verificationExpires = date("Y-m-d H:i:s", strtotime("+1 hour"));
 
-            $insertSql = "INSERT INTO users (name, email, phone, password) VALUES (?, ?, ?, ?)";
+            $insertSql = "INSERT INTO users (name, email, phone, password, email_verification_token, email_verification_expires) VALUES (?, ?, ?, ?, ?, ?)";
             $insertStmt = mysqli_prepare($conn, $insertSql);
-            mysqli_stmt_bind_param($insertStmt, "ssss", $name, $email, $phone, $hashedPassword);
+            mysqli_stmt_bind_param($insertStmt, "ssssss", $name, $email, $phone, $hashedPassword, $verificationToken, $verificationExpires);
             mysqli_stmt_execute($insertStmt);
 
-            $message = "Signup successful. You can login now.";
+            $verifyLink = getBaseUrl() . "/verify-email.php?token=" . $verificationToken;
+            $emailBody = "Hi " . htmlspecialchars($name) . ",<br><br>"
+                . "Please verify your email address by clicking this link:<br>"
+                . "<a href='" . $verifyLink . "'>" . $verifyLink . "</a><br><br>"
+                . "This link will expire in 1 hour.";
+
+            $mailResult = sendSmtpEmail($email, $name, "Verify your email", $emailBody);
+
+            if ($mailResult === true) {
+                $message = "Signup successful. Please check your Gmail inbox to verify your email.";
+            } else {
+                $deleteSql = "DELETE FROM users WHERE email = ? AND email_verified = 0";
+                $deleteStmt = mysqli_prepare($conn, $deleteSql);
+                mysqli_stmt_bind_param($deleteStmt, "s", $email);
+                mysqli_stmt_execute($deleteStmt);
+
+                $error = $mailResult;
+            }
         }
     }
 }
@@ -54,11 +74,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <h1>Signup</h1>
 
             <?php if ($message != "") { ?>
-                <div class="message"><?php echo $message; ?></div>
+                <div class="message"><?php echo htmlspecialchars($message); ?></div>
             <?php } ?>
 
             <?php if ($error != "") { ?>
-                <div class="error"><?php echo $error; ?></div>
+                <div class="error"><?php echo htmlspecialchars($error); ?></div>
             <?php } ?>
 
             <form method="POST" action="">

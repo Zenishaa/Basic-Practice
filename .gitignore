@@ -8,8 +8,10 @@ Thumbs.db
 
 # Local environment files
 .env
+config/mail.php
 
 # Runtime or temporary files
 *.log
 tmp/
 temp/
+vendor/
