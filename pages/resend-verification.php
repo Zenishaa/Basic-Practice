@@ -5,7 +5,7 @@ include "../config/mail_helper.php";
 $message = "";
 $error = "";
 $email = "";
-
+date_default_timezone_set('Asia/Kolkata');
 if (isset($_GET["email"])) {
     $email = trim($_GET["email"]);
 }
@@ -31,11 +31,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $message = "This Gmail address is already verified. You can login now.";
             } else {
                 $verificationToken = makeSecureToken();
-                $verificationExpires = date("Y-m-d H:i:s", strtotime("+1 hour"));
 
-                $updateSql = "UPDATE users SET email_verification_token = ?, email_verification_expires = ? WHERE id = ?";
+                $updateSql = "UPDATE users SET email_verification_token = ?, email_verification_expires = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE id = ?";
                 $updateStmt = mysqli_prepare($conn, $updateSql);
-                mysqli_stmt_bind_param($updateStmt, "ssi", $verificationToken, $verificationExpires, $user["id"]);
+                mysqli_stmt_bind_param($updateStmt, "si", $verificationToken, $user["id"]);
                 mysqli_stmt_execute($updateStmt);
 
                 $verifyLink = getBaseUrl() . "/verify-email.php?token=" . $verificationToken;

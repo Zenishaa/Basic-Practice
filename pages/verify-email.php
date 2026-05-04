@@ -5,7 +5,7 @@ $message = "";
 $error = "";
 $token = "";
 $resendEmail = "";
-
+date_default_timezone_set('Asia/Kolkata');
 if (isset($_GET["token"])) {
     $token = trim($_GET["token"]);
 }
@@ -13,6 +13,7 @@ if (isset($_GET["token"])) {
 if ($token == "") {
     $error = "Invalid verification link.";
 } else {
+    $currentTime = date("Y-m-d H:i:s");
     $sql = "SELECT id FROM users WHERE email_verification_token = ? AND email_verification_expires > NOW()";
     $stmt = mysqli_prepare($conn, $sql);
     mysqli_stmt_bind_param($stmt, "s", $token);

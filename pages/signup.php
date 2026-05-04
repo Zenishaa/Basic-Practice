@@ -32,11 +32,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } else {
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
             $verificationToken = makeSecureToken();
-            $verificationExpires = date("Y-m-d H:i:s", strtotime("+1 hour"));
 
-            $insertSql = "INSERT INTO users (name, email, phone, password, email_verification_token, email_verification_expires) VALUES (?, ?, ?, ?, ?, ?)";
+            $insertSql = "INSERT INTO users (name, email, phone, password, email_verification_token, email_verification_expires) VALUES (?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))";
             $insertStmt = mysqli_prepare($conn, $insertSql);
-            mysqli_stmt_bind_param($insertStmt, "ssssss", $name, $email, $phone, $hashedPassword, $verificationToken, $verificationExpires);
+            mysqli_stmt_bind_param($insertStmt, "sssss", $name, $email, $phone, $hashedPassword, $verificationToken);
             mysqli_stmt_execute($insertStmt);
 
             $verifyLink = getBaseUrl() . "/verify-email.php?token=" . $verificationToken;
